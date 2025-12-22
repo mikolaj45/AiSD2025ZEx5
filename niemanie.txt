@@ -1,0 +1,1 @@
+To jest przykladowy plik tekstowy do kompresji. AAAAA BBBBB CCCCC 

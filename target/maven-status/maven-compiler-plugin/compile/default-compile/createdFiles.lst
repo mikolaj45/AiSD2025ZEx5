@@ -1,0 +1,10 @@
+pl\edu\pw\ee\aisd2025zex5\services\CompressorService.class
+pl\edu\pw\ee\aisd2025zex5\structures\ByteBlockFrequencyMap$Entry.class
+pl\edu\pw\ee\aisd2025zex5\utils\BitInputStream.class
+pl\edu\pw\ee\aisd2025zex5\services\DecompressorService.class
+pl\edu\pw\ee\aisd2025zex5\services\CompressorService$CodeEntry.class
+pl\edu\pw\ee\aisd2025zex5\AiSD2025ZEx5.class
+pl\edu\pw\ee\aisd2025zex5\structures\ByteBlockFrequencyMap.class
+pl\edu\pw\ee\aisd2025zex5\core\HuffmanNode.class
+pl\edu\pw\ee\aisd2025zex5\structures\MinPriorityQueue.class
+pl\edu\pw\ee\aisd2025zex5\utils\BitOutputStream.class

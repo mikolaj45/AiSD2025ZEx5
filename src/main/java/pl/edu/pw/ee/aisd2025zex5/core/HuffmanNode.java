@@ -1,7 +1,5 @@
 package pl.edu.pw.ee.aisd2025zex5.core;
 
-import java.util.Arrays;
-
 public class HuffmanNode implements Comparable<HuffmanNode> {
     private final byte[] symbol; // Symbol (blok bajtów), null dla węzłów wewnętrznych
     private final long frequency; // Częstość występowania
