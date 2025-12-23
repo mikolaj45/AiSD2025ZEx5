@@ -34,6 +34,7 @@
     </dependencies>
 
     <build>
+        <finalName>AiSD2025ZEx5</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

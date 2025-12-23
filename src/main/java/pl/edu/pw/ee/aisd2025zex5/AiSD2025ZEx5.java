@@ -3,43 +3,55 @@ package pl.edu.pw.ee.aisd2025zex5;
 import pl.edu.pw.ee.aisd2025zex5.services.CompressorService;
 import pl.edu.pw.ee.aisd2025zex5.services.DecompressorService;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class AiSD2025ZEx5 {
 
     public static void main(String[] args) {
         try {
-            // Parsowanie argumentów do mapy dla wygody
-            Map<String, String> parsedArgs = parseArgs(args);
+            String mode = null;
+            String sourcePath = null;
+            String destPath = null;
+            String lengthStr = "1";
 
-            String mode = parsedArgs.get("-m");
-            String sourcePath = parsedArgs.get("-s");
-            String destPath = parsedArgs.get("-d");
-            
-            // Obsługa parametru długości: sprawdzamy -l oraz -1
-            String lengthStr = parsedArgs.getOrDefault("-l", parsedArgs.getOrDefault("-1", "1"));
-            int blockSize;
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
+                String nextArg = (i + 1 < args.length) ? args[i + 1] : null;
 
-            // Walidacja podstawowa
+                if ("-m".equals(arg) && nextArg != null) {
+                    mode = nextArg;
+                    i++;
+                } else if ("-s".equals(arg) && nextArg != null) {
+                    sourcePath = nextArg;
+                    i++;
+                } else if ("-d".equals(arg) && nextArg != null) {
+                    destPath = nextArg;
+                    i++;
+                } else if (("-l".equals(arg) || "-1".equals(arg)) && nextArg != null) {
+                    lengthStr = nextArg;
+                    i++;
+                }
+            }
+
             if (mode == null || sourcePath == null || destPath == null) {
                 printUsageAndExit("Missing required arguments (-m, -s, -d).");
             }
 
+            int blockSize;
             try {
                 blockSize = Integer.parseInt(lengthStr);
             } catch (NumberFormatException e) {
-                throw new RuntimeException("Argument -l (or -1) must be an integer.");
+                throw new RuntimeException("Argument -l must be an integer.");
             }
 
-            // Uruchomienie odpowiedniego serwisu
+            if (blockSize < 1 || blockSize > 5) {
+                printUsageAndExit("Error: Block size (-l) must be less or equal to 5 and greater than 0");
+            }
+            
             long startTime = System.currentTimeMillis();
             
             if ("comp".equalsIgnoreCase(mode)) {
                 CompressorService compressor = new CompressorService();
                 compressor.compress(sourcePath, destPath, blockSize);
             } else if ("decomp".equalsIgnoreCase(mode)) {
-                // Przy dekompresji blockSize jest czytany z pliku, argument CLI jest ignorowany
                 DecompressorService decompressor = new DecompressorService();
                 decompressor.decompress(sourcePath, destPath);
             } else {
@@ -50,27 +62,10 @@ public class AiSD2025ZEx5 {
             System.out.println("Operation finished in " + duration + " ms.");
 
         } catch (Exception e) {
-            // Zgodnie z wymaganiem: jawna obsługa wyjątków
             System.err.println("Error: " + e.getMessage());
-            // e.printStackTrace(); // Opcjonalnie dla debugowania
+            // e.printStackTrace(); 
             System.exit(1);
         }
-    }
-
-    private static Map<String, String> parseArgs(String[] args) {
-        Map<String, String> map = new HashMap<>();
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].startsWith("-")) {
-                if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
-                    map.put(args[i], args[i + 1]);
-                    i++; // Przeskocz wartość
-                } else {
-                    // Flaga bez wartości lub błędna (np. -d -s)
-                    map.put(args[i], "");
-                }
-            }
-        }
-        return map;
     }
 
     private static void printUsageAndExit(String message) {

@@ -5,7 +5,7 @@ import java.util.List;
 import pl.edu.pw.ee.aisd2025zex5.core.HuffmanNode;
 
 public class ByteBlockFrequencyMap {
-    private static final int INITIAL_CAPACITY = 1024; // Rozmiar tablicy
+    private static final int INITIAL_CAPACITY = 4096;
     private Entry[] buckets;
     private int size;
 
@@ -26,7 +26,6 @@ public class ByteBlockFrequencyMap {
         this.size = 0;
     }
 
-    // Dodaje wystąpienie bloku bajtów
     public void increment(byte[] keyBlock) {
         int hash = getHash(keyBlock);
         int index = Math.abs(hash % buckets.length);
@@ -34,14 +33,12 @@ public class ByteBlockFrequencyMap {
         Entry current = buckets[index];
         while (current != null) {
             if (arraysEqual(current.key, keyBlock)) {
-                current.frequency++; // Znaleziono, zwiększ licznik
+                current.frequency++;
                 return;
             }
             current = current.next;
         }
 
-        // Nie znaleziono - dodaj nowy wpis na początku listy (najszybciej)
-        // Kopiujemy tablicę (keyBlock), bo bufor wejściowy się zmieni!
         byte[] keyCopy = new byte[keyBlock.length];
         System.arraycopy(keyBlock, 0, keyCopy, 0, keyBlock.length);
         
@@ -49,7 +46,6 @@ public class ByteBlockFrequencyMap {
         size++;
     }
 
-    // Zwraca listę węzłów gotowych do wrzucenia do Kolejki Priorytetowej
     public List<HuffmanNode> toNodeList() {
         List<HuffmanNode> nodes = new ArrayList<>();
         for (Entry bucket : buckets) {
@@ -61,8 +57,6 @@ public class ByteBlockFrequencyMap {
         }
         return nodes;
     }
-
-    // --- Metody pomocnicze ---
 
     private int getHash(byte[] bytes) {
         int result = 1;

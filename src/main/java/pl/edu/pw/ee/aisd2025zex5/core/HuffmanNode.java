@@ -1,18 +1,16 @@
 package pl.edu.pw.ee.aisd2025zex5.core;
 
 public class HuffmanNode implements Comparable<HuffmanNode> {
-    private final byte[] symbol; // Symbol (blok bajtów), null dla węzłów wewnętrznych
-    private final long frequency; // Częstość występowania
+    private final byte[] symbol;
+    private final long frequency;
     private HuffmanNode left;
     private HuffmanNode right;
 
-    // Konstruktor dla liścia (posiada symbol)
     public HuffmanNode(byte[] symbol, long frequency) {
         this.symbol = symbol;
         this.frequency = frequency;
     }
 
-    // Konstruktor dla węzła wewnętrznego (łączenie dwóch innych węzłów)
     public HuffmanNode(HuffmanNode left, HuffmanNode right) {
         this.symbol = null;
         this.frequency = left.frequency + right.frequency;
@@ -42,7 +40,6 @@ public class HuffmanNode implements Comparable<HuffmanNode> {
 
     @Override
     public int compareTo(HuffmanNode other) {
-        // Potrzebne do kolejki priorytetowej (rosnąco)
         return Long.compare(this.frequency, other.frequency);
     }
 }

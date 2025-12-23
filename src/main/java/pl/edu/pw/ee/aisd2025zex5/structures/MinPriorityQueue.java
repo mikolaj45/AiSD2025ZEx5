@@ -11,7 +11,6 @@ public class MinPriorityQueue {
         this.heap = new ArrayList<>();
     }
     
-    // Dodaj wszystkie elementy z listy (np. z mapy) i zbuduj kopiec
     public void addAll(List<HuffmanNode> nodes) {
         for (HuffmanNode node : nodes) {
             add(node);

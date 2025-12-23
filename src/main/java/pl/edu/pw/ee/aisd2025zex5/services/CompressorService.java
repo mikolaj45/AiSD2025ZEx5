@@ -3,58 +3,56 @@ package pl.edu.pw.ee.aisd2025zex5.services;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
 
 import pl.edu.pw.ee.aisd2025zex5.core.HuffmanNode;
+import pl.edu.pw.ee.aisd2025zex5.structures.ByteBlockCodeMap;
 import pl.edu.pw.ee.aisd2025zex5.structures.ByteBlockFrequencyMap;
 import pl.edu.pw.ee.aisd2025zex5.structures.MinPriorityQueue;
 import pl.edu.pw.ee.aisd2025zex5.utils.BitOutputStream;
 
 public class CompressorService {
 
-    // Klasa wewnętrzna do przechowywania kodu dla danego bloku (Słownik kodów)
-    private static class CodeEntry {
-        byte[] block;
-        String code; // np. "101"
-
-        CodeEntry(byte[] block, String code) {
-            this.block = block;
-            this.code = code;
-        }
-    }
-
-    private final List<CodeEntry> codeTable = new ArrayList<>();
+    private final ByteBlockCodeMap codeMap = new ByteBlockCodeMap();
 
     public void compress(String sourcePath, String destPath, int blockSize) {
         if (blockSize < 1) throw new IllegalArgumentException("Block size must be >= 1");
 
+        File sourceFile = new File(sourcePath);
+
+        if (!sourceFile.exists()) {
+            throw new IllegalArgumentException("Input file does not exist: " + sourcePath);
+        }
+        if (!sourceFile.isFile()) {
+            throw new IllegalArgumentException("Input path is a directory, not a file: " + sourcePath);
+        }
+        if (!sourceFile.canRead()) {
+            throw new IllegalArgumentException("Cannot read input file (permission denied): " + sourcePath);
+        }
+        if (sourceFile.length() == 0) {
+            throw new IllegalArgumentException("Input file is empty!");
+        }
+        
+        validateOutputFile(destPath);
+        
         try {
-            // KROK 1: Analiza częstości występowania bloków
             System.out.println("Analyzing file frequency...");
             ByteBlockFrequencyMap frequencyMap = countFrequencies(sourcePath, blockSize);
             long originalFileSize = getFileSize(sourcePath);
 
-            // KROK 2: Budowa drzewa Huffmana
             System.out.println("Building Huffman tree...");
             HuffmanNode root = buildHuffmanTree(frequencyMap);
 
-            // KROK 3: Generowanie kodów (tabela kodowa)
-            codeTable.clear();
             generateCodes(root, "");
 
-            // KROK 4: Zapis do pliku wynikowego
             System.out.println("Writing compressed file...");
             try (BitOutputStream bitOut = new BitOutputStream(destPath)) {
                 
-                // 4a. Zapis Nagłówka
-                bitOut.writeByte(blockSize);       // 1 bajt: rozmiar bloku (-l)
-                bitOut.writeLong(originalFileSize); // 8 bajtów: rozmiar oryginału
+                bitOut.writeByte(blockSize);
+                bitOut.writeLong(originalFileSize);
                 
-                // 4b. Zapis Drzewa (Wariant B - topologia)
                 writeTreeStructure(root, bitOut);
 
-                // 4c. Kodowanie Danych
                 encodeData(sourcePath, blockSize, bitOut);
             }
 
@@ -71,8 +69,6 @@ public class CompressorService {
             byte[] buffer = new byte[blockSize];
             int bytesRead;
             while ((bytesRead = is.read(buffer)) != -1) {
-                // Jeśli ostatni blok jest krótszy, musimy go dopełnić (padding zerami w pamięci)
-                // Nasza mapa i tak traktuje klucz jako byte[blockSize]
                 if (bytesRead < blockSize) {
                     for (int i = bytesRead; i < blockSize; i++) {
                         buffer[i] = 0; 
@@ -88,10 +84,8 @@ public class CompressorService {
         MinPriorityQueue queue = new MinPriorityQueue();
         queue.addAll(map.toNodeList());
 
-        // Przypadek szczególny: plik pusty lub 1 rodzaj znaku
         if (queue.size() == 0) return null;
         if (queue.size() == 1) {
-            // Tworzymy sztucznego rodzica, żeby algorytm miał co kodować (0 lub 1)
             HuffmanNode node = queue.poll();
             return new HuffmanNode(node, new HuffmanNode(new byte[node.getSymbol().length], 0)); 
         }
@@ -110,7 +104,7 @@ public class CompressorService {
         if (node == null) return;
 
         if (node.isLeaf()) {
-            codeTable.add(new CodeEntry(node.getSymbol(), currentCode.length() > 0 ? currentCode : "1"));
+            codeMap.put(node.getSymbol(), currentCode.length() > 0 ? currentCode : "1");
             return;
         }
 
@@ -118,18 +112,16 @@ public class CompressorService {
         generateCodes(node.getRight(), currentCode + "1");
     }
 
-    // Rekurencyjny zapis drzewa: 0 dla węzła, 1 + symbol dla liścia
     private void writeTreeStructure(HuffmanNode node, BitOutputStream out) throws IOException {
         if (node == null) return;
 
         if (node.isLeaf()) {
-            out.writeBit(1); // To jest liść
-            // Zapisz symbol (byte[]) bit po bicie
+            out.writeBit(1);
             for (byte b : node.getSymbol()) {
                 out.writeByte(b);
             }
         } else {
-            out.writeBit(0); // To węzeł wewnętrzny
+            out.writeBit(0);
             writeTreeStructure(node.getLeft(), out);
             writeTreeStructure(node.getRight(), out);
         }
@@ -141,15 +133,13 @@ public class CompressorService {
             int bytesRead;
             while ((bytesRead = is.read(buffer)) != -1) {
                 if (bytesRead < blockSize) {
-                    // Padding zerami dla ostatniego bloku
                     for (int i = bytesRead; i < blockSize; i++) buffer[i] = 0;
                 }
                 
-                // Znajdź kod dla tego bloku
-                String code = findCode(buffer);
+                String code = codeMap.get(buffer);
+                
                 if (code == null) throw new RuntimeException("Critical Error: Code not found for block!");
 
-                // Wypisz kod bit po bicie
                 for (char c : code.toCharArray()) {
                     out.writeBit(c == '1' ? 1 : 0);
                 }
@@ -157,26 +147,20 @@ public class CompressorService {
         }
     }
     
-    // Proste wyszukiwanie liniowe w tabeli kodów (można zoptymalizować mapą, 
-    // ale przy tej strukturze projektu i zakazie bibliotek to jest bezpieczne i czytelne)
-    private String findCode(byte[] block) {
-        for (CodeEntry entry : codeTable) {
-            if (arraysEqual(entry.block, block)) {
-                return entry.code;
-            }
-        }
-        return null;
-    }
-
-    private boolean arraysEqual(byte[] a, byte[] b) {
-        if (a.length != b.length) return false;
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] != b[i]) return false;
-        }
-        return true;
-    }
-    
     private long getFileSize(String path) {
         return new java.io.File(path).length();
+    }
+    
+    private void validateOutputFile(String destPath) {
+        File destFile = new File(destPath);
+        File parentDir = destFile.getParentFile();
+
+        if (parentDir != null && !parentDir.exists()) {
+            throw new IllegalArgumentException("Target directory does not exist: " + parentDir.getAbsolutePath());
+        }
+
+        if (parentDir != null && !parentDir.canWrite()) {
+            throw new IllegalArgumentException("Cannot write to target directory (permission denied): " + parentDir.getAbsolutePath());
+        }
     }
 }

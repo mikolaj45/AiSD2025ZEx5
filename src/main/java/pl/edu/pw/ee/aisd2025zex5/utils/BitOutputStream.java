@@ -6,8 +6,8 @@ import java.io.OutputStream;
 
 public class BitOutputStream implements AutoCloseable {
     private final OutputStream outputStream;
-    private int currentByte; // Bufor na 8 bitów
-    private int numBitsFilled; // Ile bitów mamy już w buforze
+    private int currentByte;
+    private int numBitsFilled;
 
     public BitOutputStream(String filePath) throws IOException {
         this.outputStream = new FileOutputStream(filePath);
@@ -15,7 +15,6 @@ public class BitOutputStream implements AutoCloseable {
         this.numBitsFilled = 0;
     }
     
-    // Konstruktor przyjmujący istniejący strumień (np. dla testów)
     public BitOutputStream(OutputStream outputStream) {
         this.outputStream = outputStream;
         this.currentByte = 0;
@@ -27,11 +26,9 @@ public class BitOutputStream implements AutoCloseable {
             throw new IllegalArgumentException("Bit must be 0 or 1");
         }
 
-        // Dodajemy bit do bufora (przesuwamy istniejące w lewo, wstawiamy nowy na pozycję LSB)
         currentByte = (currentByte << 1) | bit;
         numBitsFilled++;
 
-        // Jeśli mamy pełny bajt (8 bitów), zapisujemy go do pliku
         if (numBitsFilled == 8) {
             outputStream.write(currentByte);
             currentByte = 0;
@@ -39,16 +36,13 @@ public class BitOutputStream implements AutoCloseable {
         }
     }
 
-    // Zapisuje cały bajt (8 bitów) - przydatne do nagłówka
     public void writeByte(int b) throws IOException {
-        // Musimy zapisać 8 bitów z inta 'b'
         for (int i = 7; i >= 0; i--) {
             int bit = (b >> i) & 1;
             writeBit(bit);
         }
     }
     
-    // Zapisuje wartość long (64 bity) - przydatne do długości pliku
     public void writeLong(long value) throws IOException {
         for (int i = 63; i >= 0; i--) {
             int bit = (int) ((value >> i) & 1);
@@ -58,10 +52,9 @@ public class BitOutputStream implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        // Jeśli w buforze zostały jakieś bity (niepełny bajt), dopełniamy zerami (padding)
         if (numBitsFilled > 0) {
             while (numBitsFilled < 8) {
-                currentByte = (currentByte << 1); // Dopełnienie zerem
+                currentByte = (currentByte << 1);
                 numBitsFilled++;
             }
             outputStream.write(currentByte);
